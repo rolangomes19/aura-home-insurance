@@ -1,34 +1,36 @@
 // Screen renderers for S01 to S04, E1, E2. Copy comes from data.js / copy-flow.js (no strings here except layout).
 import { screens, state, setAnswers, t, esc, tip, bandLabel } from './app.js';
 import './copy-flow.js';
+import './copy-buy.js';
 import { ROLES, COVER_OPTIONS, PROPERTY_TYPES, EMIRATES, BELONGINGS_BANDS } from './domain.js';
 import { eligibility, listingNotes, validMobile } from './engine.js';
 
-const A = () => state.answers;
-const go = (id) => { location.hash = '#/' + id; };
-const bool = (v) => (v === 'true' ? true : v === 'false' ? false : undefined);
+export const A = () => state.answers;
+export const go = (id) => { location.hash = '#/' + id; };
+export const bool = (v) => (v === 'true' ? true : v === 'false' ? false : undefined);
 const num = (v) => { const n = Number(String(v ?? '').replace(/[,\s]/g, '')); return v && Number.isFinite(n) && n > 0 ? n : undefined; };
-const vals = (form) => Object.fromEntries(new FormData(form));
+export const vals = (form) => Object.fromEntries(new FormData(form));
 const RANK = { s01: 1, s02: 2, s03: 3, s04: 4 };
 let flash = false; // "Answers saved" shows once on the next screen
+export const markSaved = () => { flash = true; };
 
 // ---- form building blocks ----
-const radios = (name, legend, opts, cur, help = '') =>
+export const radios = (name, legend, opts, cur, help = '') =>
   `<fieldset class="field" data-field="${name}"><legend class="t-h2">${legend}</legend>${help}` +
   `<div class="stack">${opts.map(([v, label, sub]) =>
     `<label class="opt"><input type="radio" name="${name}" value="${esc(v)}"${String(cur) === String(v) ? ' checked' : ''}>` +
     `<span><b>${label}</b>${sub ? `<span class="t-meta">${sub}</span>` : ''}</span></label>`).join('')}</div>` +
   `<p class="err t-body" id="err-${name}" hidden></p></fieldset>`;
-const yesno = (name, legend, cur, why = '') =>
+export const yesno = (name, legend, cur, why = '') =>
   radios(name, legend, [['true', t('yes')], ['false', t('no')]], cur === true ? 'true' : cur === false ? 'false' : '',
     why ? `<p class="t-meta">${why}</p>` : '');
-const textField = (name, label, cur, hint, extra = '') =>
+export const textField = (name, label, cur, hint, extra = '') =>
   `<div class="field"><label class="t-h2" for="${name}">${label}</label>${extra}` +
   `<input id="${name}" name="${name}" inputmode="numeric" autocomplete="off" value="${cur ?? ''}" aria-describedby="hint-${name} err-${name}">` +
   `<p class="t-meta" id="hint-${name}">${hint}</p><p class="err t-body" id="err-${name}" hidden></p></div>`;
 const seeWhy = (msg) => `${msg} <button type="button" class="link" data-seewhy>${t('seeWhy')}</button>`;
 
-const page = (h1, inner, { back = true, next = t('continue') } = {}) =>
+export const page = (h1, inner, { back = true, next = t('continue') } = {}) =>
   (flash ? ((flash = false), `<p class="t-meta saved" role="status">${t('saved')}</p>`) : '') +
   `<h1 class="t-title">${h1}</h1><form novalidate id="f" class="form">` +
   `<div id="summary" class="err-summary t-body" role="alert" tabindex="-1" hidden></div>${inner}` +
@@ -37,7 +39,7 @@ const page = (h1, inner, { back = true, next = t('continue') } = {}) =>
   `<button class="btn btn-primary" type="submit">${next}</button></div></form>`;
 
 // All errors at once, plain words, focus the first one (D15, D28)
-function showErrors(root, errs) {
+export function showErrors(root, errs) {
   root.querySelectorAll('.err').forEach((e) => { e.hidden = true; e.textContent = ''; });
   const sum = root.querySelector('#summary');
   sum.hidden = !errs.length;
@@ -77,7 +79,7 @@ function wire(el, id, next, { read, validate, live, after, afterSave }) {
   };
   refresh();
 }
-const err = (name, label, msg = t('choose')) => ({ name, label, msg });
+export const err = (name, label, msg = t('choose')) => ({ name, label, msg });
 
 // ---- S01 ----
 const ROLE_IDS = ['owner_living_in', 'owner_renting_out', 'tenant'];
@@ -88,7 +90,7 @@ screens.s01 = (el) => {
     <div class="box"><p class="t-label">${s('boxTitle')}</p><p class="t-body">${s('boxBody')}</p></div>
     ${radios('role', s('question'), ROLE_IDS.map((r, i) => [r, cards[i][0], cards[i][1]]), a.role)}
     <div data-show="role=tenant">${yesno('tenancy12m', s('tenantQ'), a.tenancy12m)}</div>
-    <p class="t-meta">${s('range')}</p><p class="t-meta">${s('trust')}</p>`, { back: false });
+    <p class="t-meta">${s('range')}</p><p class="t-meta">${s('trust')}</p><p class="t-body"><a href="#/s14">${t('s14.resume')}</a></p>`, { back: false });
   wire(el, 's01', 's02', {
     read: (f) => { const d = vals(f); return { role: d.role, tenancy12m: d.role === 'tenant' ? bool(d.tenancy12m) : null }; },
     validate: (d) => [
