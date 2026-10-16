@@ -1,4 +1,5 @@
 import { COPY, ROUTES, AR_SCREENS, ANSWER_FIELDS } from './data.js';
+import { BELONGINGS_BANDS } from './domain.js';
 
 const KEY = 'aura-home-v1';
 const $ = (s) => document.querySelector(s);
@@ -30,7 +31,10 @@ const placeholder = (id) => (el) => {
   el.innerHTML = `<h1 class="t-title">${id.toUpperCase()}</h1><p class="t-body">${t('placeholderScreen')}</p>`;
 };
 
+export const bandLabel = (i) => { const [a, b] = BELONGINGS_BANDS[i]; return b ? `AED ${a.toLocaleString('en-US')} to ${b.toLocaleString('en-US')}` : `AED ${a.toLocaleString('en-US')} and above`; };
 const fmt = (key, v) => {
+  if (key === 'belongingsBand') return bandLabel(v);
+  if (typeof v === 'number') return aed(v);
   if (Array.isArray(v)) return v.map((x) => t('values.' + x) ?? x).join(', ');
   if (v === true) return t('yes');
   if (v === false) return t('no');
@@ -99,6 +103,8 @@ document.addEventListener('click', (e) => {
 // Answers panel: always open at desktop width, collapsible below
 const desktop = matchMedia('(min-width:1280px)');
 const syncPanel = () => { if (desktop.matches) $('#answers').open = true; };
-desktop.addEventListener('change', syncPanel);
-window.addEventListener('hashchange', () => { route(); syncPanel(); });
-route(); syncPanel();
+export function start() {
+  desktop.addEventListener('change', syncPanel);
+  window.addEventListener('hashchange', () => { route(); syncPanel(); });
+  route(); syncPanel();
+}

@@ -80,3 +80,21 @@ a{color:var(--accent)}
   .side{order:0;position:sticky;top:16px}
   #answers summary{pointer-events:none}
 }
+
+/* Forms */
+.form{display:flex;flex-direction:column;gap:20px}
+fieldset.field{border:none;padding:0;margin:0;min-inline-size:0}
+fieldset.field legend{padding:0;margin-bottom:8px}
+.opt{display:flex;gap:10px;align-items:flex-start;min-height:44px;padding:12px 14px;border:1.5px solid var(--line);border-radius:8px;background:var(--card);cursor:pointer}
+.opt span{display:flex;flex-direction:column;gap:2px}
+.opt input{margin:3px 0 0;width:20px;height:20px;accent-color:var(--accent);flex:none}
+.opt:has(input:checked){border:2px solid var(--accent);background:var(--accent-soft);padding:11.5px 13.5px}
+.field select{min-height:44px;padding:0 12px;border:1.5px solid var(--line);border-radius:8px;font:inherit;background:var(--card);max-width:100%}
+.field input:not([type=radio]):not([type=checkbox]){max-width:100%}
+.err-summary{border:2px solid #9B1C1C;background:#FDECEC;border-radius:8px;padding:12px}
+.err-summary ul{margin:6px 0 0;padding-inline-start:20px}
+.err-summary a{color:#7A1212}
+.saved{background:var(--accent-soft);padding:4px 10px;border-radius:12px;align-self:flex-start;color:var(--accent);font-weight:600}
+a.btn{display:inline-flex;align-items:center;text-decoration:none;color:var(--ink)}
+dialog{border:2px solid var(--ink);border-radius:12px;padding:20px;max-width:480px;width:calc(100% - 32px)}
+dialog::backdrop{background:rgba(31,37,34,.45)}
