@@ -113,3 +113,26 @@ export const ELIGIBILITY = [
 
 // UAE mobile: prefix then 7 digits (K5)
 export const MOBILE_PREFIXES = ['50', '52', '54', '55', '56', '58'];
+
+// S06 fold-out text (5.4). [verify] against the PDF before final screens (R5). Plan C is all [P].
+export const DETAILS = {
+  A: {
+    covered: ['Building, contents and personal belongings, as you chose'],
+    limits: [
+      'Glass and sanitary ware: up to 10% of the building sum insured',
+      'Rent or alternative accommodation: up to 12 months, max 20% of the building sum insured and AED 500,000',
+      "Owner's liability: AED 2,000,000", 'Money: AED 1,000', 'Keys and locks: AED 2,000', 'Contents in the open: AED 2,500',
+      'Temporary removal: 20% of the contents sum insured',
+      "Tenant's liability: the higher of 20% of the contents sum insured or AED 100,000",
+      "Visitors' effects: AED 2,500", 'Legal liability: AED 2,000,000',
+      'Proof of value needed: contents items over AED 20,000, belongings over AED 5,000',
+    ],
+    notCovered: ['Loss not reported to the police', 'Deliberate acts', 'Home empty 60 days in a row', 'Loss before the start date', 'Wear and tear', 'Faulty work', 'Consequential loss'],
+  },
+  B: {
+    covered: ['Contents and personal belongings', 'Home assistance: 3 call-outs a period, up to AED 2,100', 'Liability'],
+    limits: ['Single item limit: AED 40,000 for contents, AED 10,000 for belongings', 'Other limits: not stated'],
+    notCovered: ['Home empty over 60 days in a row', 'Loss not reported to the police', 'Mysterious disappearance', 'Wear and tear', 'Consequential loss'],
+  },
+  C: { covered: ['[P]'], limits: ['[P]'], notCovered: ['[P]'] },
+};
