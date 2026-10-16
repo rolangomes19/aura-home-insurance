@@ -102,7 +102,7 @@ Object.assign(COPY.en, {
 });
 
 Object.assign(COPY.ar, {
-  continue: 'متابعة', changeAnswer: 'تعديل الإجابة', requestCall: 'اطلب اتصالًا',
+  keepNote: 'إجاباتك محفوظة.', continue: 'متابعة', changeAnswer: 'تعديل الإجابة', requestCall: 'اطلب اتصالًا',
   values: { hotel_apartment: 'شقة فندقية', shared: 'سكن مشترك' },
   s01: {
     h1: 'اعثر على خطة تأمين منزل تناسبك',

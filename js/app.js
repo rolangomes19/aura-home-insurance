@@ -17,7 +17,8 @@ export const t = (path, lang = state.lang) => {
   const get = (l) => path.split('.').reduce((o, k) => (o == null ? o : o[k]), COPY[l]);
   return get(lang) ?? get('en');
 };
-const aed = (n) => 'AED ' + Number(n).toLocaleString('en-US'); // Western digits [P]
+// Western digits [P, confirm with reviewer]; Arabic puts the unit after the number
+export const aed = (n) => (state.lang === 'ar' ? `${Number(n).toLocaleString('en-US')} درهم` : 'AED ' + Number(n).toLocaleString('en-US'));
 // Every price goes through here so the label can never be missing (3G, X11)
 export const price = (n) =>
   `<span class="price"><b>${aed(n)}</b> ${t('perYear')}. <span class="price-label">${t('priceLabel')}</span></span>`;

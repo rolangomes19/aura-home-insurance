@@ -1,12 +1,11 @@
 // S05 plans and S06 plan details.
-import { screens, state, setAnswers, t, esc, price, tip } from './app.js';
+import { screens, state, setAnswers, t, esc, price, tip, aed } from './app.js';
 import './copy-plans.js';
 import { PLANS, DETAILS, ROLES } from './domain.js';
 import { offers, suggest, sortOffers } from './engine.js';
 
 const A = () => state.answers;
 const go = (id) => { location.hash = '#/' + id; };
-const aed = (n) => 'AED ' + n.toLocaleString('en-US');
 let seen = '';      // answers the skeleton already ran for
 let sortKey = 'suggested';
 
@@ -15,7 +14,7 @@ function rows(plan) {
   const s = (k) => t('s05.rows.' + k), l = plan.limits, x = plan.excess;
   const assist = plan.homeAssistance ? t('s05.assistText').replace('{n}', plan.homeAssistance.callOuts).replace('{amt}', plan.homeAssistance.upTo.toLocaleString('en-US')) : t('s05.notIncluded');
   const cool = plan.coolingOffDays ? t('s05.coolingText').replace('{n}', plan.coolingOffDays) : t('s05.notStated');
-  const covers = plan.covers.filter((c) => c !== 'home_assistance').map((c) => t('values.' + c)).join(', ');
+  const covers = plan.covers.filter((c) => c !== 'home_assistance').map((c) => t('values.' + c)).join(t('sep'));
   return [
     [s('covers'), covers], [s('limitContents'), val(plan, l.singleItemContents)], [s('limitBelongings'), val(plan, l.singleItemBelongings)],
     [s('excessContents'), val(plan, x.contents)], [s('excessBelongings'), val(plan, x.belongings)], [s('assistance'), assist],
@@ -27,7 +26,7 @@ function reason(sg, a) {
   const r = sg.reason, f = (k) => t('s05.facts.' + k);
   if (r.type === 'only') return f('only');
   const fact = f(r.type).replace('{x}', aed(a.highestItem ?? 0)).replace('{n}', r.excess).replace('{main}', t('s05.main.' + r.main));
-  return `${t('s05.reasonCovers').replace('{covers}', a.covers.map((c) => t('values.' + c).toLowerCase()).join(', '))} ${fact} ${t('s05.reasonEnd')}`;
+  return `${t('s05.reasonCovers').replace('{covers}', a.covers.map((c) => t('values.' + c).toLowerCase()).join(t('sep')))} ${fact} ${t('s05.reasonEnd')}`;
 }
 
 function draw(el) {
@@ -40,9 +39,9 @@ function draw(el) {
     : sortOffers(list, sortKey);
   const card = (o) => {
     const p = o.plan, rec = p.id === sg.planId;
-    if (!o.fits) return `<div class="card no"><p class="t-h2">${p.name}</p><p class="t-body">${t('s05.noFit.' + o.reason)}</p></div>`;
+    if (!o.fits) return `<div class="card no"><p class="t-h2"><bdi dir="ltr">${p.name}</bdi></p><p class="t-body">${t('s05.noFit.' + o.reason)}</p></div>`;
     const also = p.covers.includes('home_assistance') ? `<p class="t-meta">${t('s05.also').replace('{x}', t('values.home_assistance'))}</p>` : '';
-    return `<div class="card${rec ? ' rec' : ''}"><div class="row between"><p class="t-h2">${p.name}</p>${rec ? `<span class="tag rec t-meta">${t('s05.suggested')}</span>` : ''}</div>
+    return `<div class="card${rec ? ' rec' : ''}"><div class="row between"><p class="t-h2"><bdi dir="ltr">${p.name}</bdi></p>${rec ? `<span class="tag rec t-meta">${t('s05.suggested')}</span>` : ''}</div>
       ${p.placeholder ? `<p class="t-meta">${t('s05.sample')}</p>` : ''}
       ${rec ? `<p class="t-body">${esc(reason(sg, a))}</p>` : ''}
       <p class="t-body">${price(o.price)}</p>${also}

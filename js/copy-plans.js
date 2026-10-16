@@ -3,6 +3,8 @@ import { COPY } from './data.js';
 import './copy-flow.js';
 
 Object.assign(COPY.en.values, { home_assistance: 'Home assistance' });
+COPY.en.sep = ', ';
+COPY.ar.sep = '، ';
 Object.assign(COPY.en, {
   s05: {
     h1: 'Plans that fit your answers',
@@ -54,16 +56,29 @@ Object.assign(COPY.ar.values, { building: 'المبنى', contents: 'المحت�
 Object.assign(COPY.ar, {
   s05: {
     h1: 'خطط تناسب إجاباتك',
+    range: 'نعرض خططًا من [N] شركات تأمين. هذه ليست كل شركات التأمين في الإمارات.',
+    loading: 'نبحث عن الخطط المناسبة لإجاباتك',
+    sortBy: 'ترتيب حسب',
+    sorts: { suggested: 'المقترحة', price: 'الأقل سعرًا', excess: 'الأقل تحمّلًا' },
+    main: { contents: 'المحتويات', belongings: 'المقتنيات' },
+    sample: 'خطة نموذجية لتجربة التصميم، وليست من شركة تأمين',
     suggested: 'مقترحة لك',
     reasonCovers: 'تغطي {covers}.',
     reasonEnd: 'القرار لك.',
-    facts: { lowest_excess: 'أقل مبلغ تحمّل للمحتويات بين الخطط المناسبة: {n} درهمًا.' },
+    facts: {
+      item_limit: 'حد القطعة الواحدة فيها يغطي أغلى قطعة لديك ({x}) دون الحاجة إلى تسجيلها.',
+      only: 'هي الخطة الوحيدة المناسبة لإجاباتك.',
+      lowest_excess: 'أقل مبلغ تحمّل في {main} بين الخطط المناسبة: {n} درهمًا.',
+      lowest_price: 'أقل سعر توضيحي بين الخطط المناسبة.',
+    },
     noFit: {
       no_building: 'لا تناسب إجاباتك: هذه الخطة لا تغطي المبنى.',
       role: 'لا تناسب إجاباتك: هذه الخطة للمالك الذي يسكن في المنزل.',
     },
     details: 'عرض التفاصيل', choose: 'اختر هذه الخطة',
+    notStated: 'غير مذكور', notIncluded: 'غير مشمولة',
     rows: {
+      covers: 'التغطيات المشمولة', assistance: 'المساعدة المنزلية',
       limitContents: 'حد القطعة الواحدة', limitBelongings: 'حد القطعة الواحدة',
       excessContents: 'مبلغ التحمّل', excessBelongings: 'مبلغ التحمّل', cooling: 'فترة التراجع', cancel: 'الإلغاء والاسترداد',
     },
