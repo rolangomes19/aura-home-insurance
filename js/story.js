@@ -28,7 +28,7 @@ export function story(a, c, fmt) {
     add(c.covers, { list: names.length > 1 ? names.slice(0, -1).join(c.sep) + c.and + names.at(-1) : names[0] });
   }
   if (typeof a.claims5y === 'boolean') add(c.claims[a.claims5y]);
-  for (const [field, key] of [['rebuildValue', 'rebuild'], ['contentsValue', 'contents'], ['belongingsBand', 'belongings'], ['highestItem', 'item']])
+  for (const [field, key] of [['rebuildValue', 'rebuild'], ['contentsBand', 'contents'], ['belongingsBand', 'belongings'], ['highestItem', 'item']])
     if (has(field)) add(c[key], { x: fmt(field, a[field]) });
   return out;
 }

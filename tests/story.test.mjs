@@ -31,15 +31,15 @@ test('story: tenant, several covers joined with "and", tenancy clause', () => {
 
 test('story: every answer a customer can edit has a token (so it can be changed from the pop-up)', () => {
   const a = { role: 'tenant', tenancy12m: true, propertyType: 'villa', emirate: 'dubai', age18Plus: true, emptyOver60: false,
-    covers: ['contents', 'personal_belongings'], claims5y: false, contentsValue: 50000, belongingsBand: 1, highestItem: 8000 };
+    covers: ['contents', 'personal_belongings'], claims5y: false, contentsBand: 0, belongingsBand: 1, highestItem: 8000 };
   const f = new Set(fieldsOf(a));
-  for (const k of ['role', 'tenancy12m', 'propertyType', 'emirate', 'age18Plus', 'emptyOver60', 'covers', 'claims5y', 'contentsValue', 'belongingsBand', 'highestItem'])
+  for (const k of ['role', 'tenancy12m', 'propertyType', 'emirate', 'age18Plus', 'emptyOver60', 'covers', 'claims5y', 'contentsBand', 'belongingsBand', 'highestItem'])
     assert.ok(f.has(k), k);
 });
 
 test('story: Arabic templates exist for every clause and every token field has pop-up copy in both languages', () => {
   const a = { role: 'owner_living_in', propertyType: 'apartment', emirate: 'dubai', age18Plus: true, emptyOver60: true,
-    covers: ['building', 'contents'], claims5y: true, rebuildValue: 1, contentsValue: 1, belongingsBand: 0, highestItem: 1 };
+    covers: ['building', 'contents'], claims5y: true, rebuildValue: 1, contentsBand: 1, belongingsBand: 0, highestItem: 1 };
   for (const lang of ['en', 'ar']) {
     const toks = story(a, COPY[lang].story, fmt).flat().filter((x) => x.field);
     assert.ok(toks.length >= 10, lang);

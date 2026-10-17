@@ -1,21 +1,14 @@
-// Domain data (spec sections 2, 5.1 to 5.7, 10.3). Kept apart from data.js (UI copy) so tests load no copy.
+// Domain data (feature brief v2, sections 6, 8, 9). Kept apart from copy so tests load no copy.
 // Figures marked [verify] must be checked in the source PDF before final screens (R5).
-
-export const COVERS = {
-  building: { id: 'building', optional: false },
-  contents: { id: 'contents', optional: false },
-  personal_belongings: { id: 'personal_belongings', optional: false },
-  domestic_staff: { id: 'domestic_staff', optional: true }, // off by default (D7)
-  home_assistance: { id: 'home_assistance', optional: false }, // Insurer B only
-};
+// Plan wording (cancellation, exclusions, add-on limits) lives in copy-plans.js so it can be translated.
 
 export const ROLES = {
-  owner_living_in: { id: 'owner_living_in', allowedCovers: ['building', 'contents', 'personal_belongings'], extraQuestions: [], documents: 'owner' },
-  owner_renting_out: { id: 'owner_renting_out', allowedCovers: ['building'], extraQuestions: [], documents: 'owner' }, // X14, F1
-  tenant: { id: 'tenant', allowedCovers: ['contents', 'personal_belongings'], extraQuestions: ['tenancy12m'], documents: 'tenant' }, // M5, K7
+  owner_living_in: { id: 'owner_living_in', allowedCovers: ['building', 'contents', 'personal_belongings'], documents: 'owner' },
+  owner_renting_out: { id: 'owner_renting_out', allowedCovers: ['building'], documents: 'owner' }, // X14, F1
+  tenant: { id: 'tenant', allowedCovers: ['contents', 'personal_belongings'], documents: 'tenant' }, // M5, K7
 };
 
-// Cover choices offered on S03 per role (O2, state matrix). Options a role cannot have are hidden.
+// Cover choices on P2 per role (O2). Owner renting out has one, shown as a fixed line.
 export const COVER_OPTIONS = {
   owner_living_in: [
     ['building'],
@@ -30,109 +23,74 @@ export const COVER_OPTIONS = {
 
 export const PROPERTY_TYPES = ['apartment', 'villa', 'hotel_apartment', 'shared', 'other'];
 export const EMIRATES = ['abu_dhabi', 'dubai', 'sharjah', 'ajman', 'umm_al_quwain', 'ras_al_khaimah', 'fujairah'];
-// Belongings value bands in AED (O5); null = open ended
+// Value bands in AED (O5); null = open ended. The last band of each is referred (high value).
+export const CONTENTS_BANDS = [[1, 50000], [50001, 100000], [100001, 150000], [150001, null]];
 export const BELONGINGS_BANDS = [[1, 25000], [25001, 50000], [50001, 100000], [100001, 150000], [150001, null]];
+export const MAX_REBUILD = 20000000; // above this goes to a person [Invented]
 
-// A = KF-E (F1 to F7), B = KF-S (F8 to F11), C = placeholder layout plan (5.1).
-// null = "not stated" in the source. Plan C values are all [P] and [Invented] so layout and the suggestion rule can run.
+// Add-on types. All need contents cover (F1). Never pre-ticked (D7).
+export const ADDONS = {
+  domestic_staff: { perUnit: 'person', maxQty: 5 },
+  home_assistance: { perUnit: null },
+  cyber: { perUnit: null },
+};
+export const ADDON_ORDER = ['domestic_staff', 'home_assistance', 'cyber'];
+export const ADDON_COVER = 'contents';
+
+// A = KF-E (F1 to F7), B = KF-S (F8 to F11), C = invented sample plan.
+// Prices are AED a year incl 5% VAT, all illustrative (6.3, 6.4). Band arrays follow the band order above.
+// Contents 1 to 50,000 for A and C is anchored to two InsuranceMarket quotes (K22); the rest is [Invented].
 export const PLANS = {
   A: {
-    id: 'A', name: '[Insurer A]', source: 'KF-E', placeholder: false,
+    id: 'A', insurer: '[Insurer A]', isInvented: false, source: 'KF-E',
     roles: ['owner_living_in', 'owner_renting_out', 'tenant'],
     covers: ['building', 'contents', 'personal_belongings'],
-    addons: ['domestic_staff'],
-    limits: { singleItemContents: 40000, singleItemBelongings: 10000, proofContents: 20000, proofBelongings: 5000 }, // F5
-    excess: { contents: 250, belongings: 250, portable: 500, overLimitPct: 10 }, // F5
-    cancellation: '7 days written notice, pro-rata refund', // F7
-    coolingOffDays: null, // not stated (F7)
+    alsoIncludes: [],
+    limits: { singleItemContents: 40000, singleItemBelongings: 10000 }, // F5 [verify]
+    excess: { contents: 250, belongings: 250, portable: 500, overLimitPct: 10 }, // F5 [verify]
+    rates: { contents: [289, 340, 410], belongings: [70, 110, 160, 215], buildingPct: 0.05 },
+    addons: { domestic_staff: { price: 83 }, home_assistance: { price: 65 } }, // 83: GIG (K12); 65 [Invented]
+    hasCooling: false, hasCancel: true, // F7
   },
   B: {
-    id: 'B', name: '[Insurer B]', source: 'KF-S', placeholder: false,
+    id: 'B', insurer: '[Insurer B]', isInvented: false, source: 'KF-S',
     roles: ['owner_living_in'], // F8: written for owner living in
-    covers: ['contents', 'personal_belongings', 'home_assistance'], // no building (F8)
-    addons: [],
-    limits: { singleItemContents: 40000, singleItemBelongings: 10000, proofContents: null, proofBelongings: null }, // F9
-    excess: { contents: 350, belongings: 500, portable: 500, overLimitPct: 10 }, // F9
-    homeAssistance: { callOuts: 3, upTo: 2100 }, // F9
-    cancellation: null,
-    coolingOffDays: 15, // working days, written notice, refund if no claim (F11)
+    covers: ['contents', 'personal_belongings'], // no building (F8)
+    alsoIncludes: ['personal_belongings'], // included when not chosen, no extra charge [Invented rule]
+    limits: { singleItemContents: 40000, singleItemBelongings: 10000 }, // F9 [verify]
+    excess: { contents: 350, belongings: 500, portable: 500, overLimitPct: 10 }, // F9 [verify]
+    rates: { contents: [330, 385, 460], belongings: [85, 130, 185, 245], buildingPct: null },
+    addons: { home_assistance: { included: true } }, // F9: 3 call-outs, up to AED 2,100
+    hasCooling: true, hasCancel: false, // F11
   },
   C: {
-    id: 'C', name: '[Insurer C]', source: 'none', placeholder: true,
-    roles: ['owner_living_in', 'owner_renting_out', 'tenant'], // same as A [P]
+    id: 'C', insurer: '[Insurer C]', isInvented: true, source: 'invented',
+    roles: ['owner_living_in', 'owner_renting_out', 'tenant'],
     covers: ['building', 'contents', 'personal_belongings'],
-    addons: [],
-    limits: { singleItemContents: 40000, singleItemBelongings: 10000, proofContents: null, proofBelongings: null },
-    excess: { contents: 300, belongings: 300, portable: null, overLimitPct: 10 },
-    cancellation: null,
-    coolingOffDays: null,
+    alsoIncludes: [],
+    limits: { singleItemContents: 40000, singleItemBelongings: 10000 },
+    excess: { contents: 150, belongings: 200, portable: 500, overLimitPct: 10 },
+    rates: { contents: [407, 470, 560], belongings: [100, 150, 210, 270], buildingPct: 0.065 },
+    addons: { domestic_staff: { price: 95 }, home_assistance: { included: true }, cyber: { price: 78 } }, // 78: GIG Cyber Comfort (K12)
+    hasCooling: true, hasCancel: true,
   },
 };
 export const PLAN_ORDER = ['A', 'B', 'C'];
 
-// Illustrative prices incl 5% VAT (5.5). Key = role|sorted covers. Only the first tenant row and
-// domestic staff have a source (K12, K22); the rest are [Invented].
-export const PRICES = {
-  A: {
-    'tenant|contents': 290,
-    'tenant|contents+personal_belongings': 340,
-    'owner_living_in|building+contents+personal_belongings': 1450,
-    'owner_living_in|contents+personal_belongings': 520,
-    'owner_living_in|building': 900,
-    'owner_living_in|contents': 380,
-    'owner_living_in|building+contents': 1250,
-    'owner_renting_out|building': 950,
-  },
-  B: {
-    'owner_living_in|contents+personal_belongings': 560,
-    'owner_living_in|contents': 410,
-  },
-  C: {
-    'tenant|contents': 315,
-    'tenant|contents+personal_belongings': 370,
-    'owner_living_in|building+contents+personal_belongings': 1620,
-    'owner_living_in|contents+personal_belongings': 600,
-    'owner_living_in|building': 1020,
-    'owner_living_in|contents': 430,
-    'owner_living_in|building+contents': 1400,
-    'owner_renting_out|building': 1080,
-  },
-};
-export const ADDON_PRICES = { domestic_staff: 83 }; // GIG domestic helper add-on (K12), illustrative only
-
-// Eligibility rules (10.3). All are placeholders modelled on M5, M6, F1, K6.
+// Eligibility rules (section 9). All are placeholders (A5).
 // test(answers) is true only when the question is answered AND triggers the outcome.
 export const ELIGIBILITY = [
-  { id: 'tenancy', screen: 's01', outcome: 'not_eligible', variant: 'tenancy', test: (a) => a.role === 'tenant' && a.tenancy12m === false },
-  { id: 'under18', screen: 's02', outcome: 'not_eligible', variant: 'under18', test: (a) => a.age18Plus === false },
-  { id: 'home_type', screen: 's02', outcome: 'not_eligible', variant: 'home_type', test: (a) => a.propertyType === 'hotel_apartment' || a.propertyType === 'shared' },
-  { id: 'empty', screen: 's02', outcome: 'not_eligible', variant: 'empty', test: (a) => a.emptyOver60 === true },
-  { id: 'home_other', screen: 's02', outcome: 'referred', variant: 'home_other', test: (a) => a.propertyType === 'other' },
-  { id: 'claims', screen: 's03', outcome: 'referred', variant: 'claims', test: (a) => a.claims5y === true },
+  { id: 'tenancy', screen: 'p1', outcome: 'not_eligible', variant: 'tenancy', test: (a) => a.role === 'tenant' && a.tenancy12m === false },
+  { id: 'home_type', screen: 'p1', outcome: 'not_eligible', variant: 'home_type', test: (a) => a.propertyType === 'hotel_apartment' || a.propertyType === 'shared' },
+  { id: 'under18', screen: 'p1', outcome: 'not_eligible', variant: 'under18', test: (a) => a.age18Plus === false },
+  { id: 'empty', screen: 'p1', outcome: 'not_eligible', variant: 'empty', test: (a) => a.emptyOver60 === true },
+  { id: 'home_other', screen: 'p1', outcome: 'referred', variant: 'home_other', test: (a) => a.propertyType === 'other' },
+  { id: 'claims', screen: 'p2', outcome: 'referred', variant: 'claims', test: (a) => a.claims5y === true },
+  {
+    id: 'high_value', screen: 'p2', outcome: 'referred', variant: 'high_value', // [Invented rule]
+    test: (a) => a.rebuildValue > MAX_REBUILD || a.contentsBand === CONTENTS_BANDS.length - 1 || a.belongingsBand === BELONGINGS_BANDS.length - 1,
+  },
 ];
 
 // UAE mobile: prefix then 7 digits (K5)
 export const MOBILE_PREFIXES = ['50', '52', '54', '55', '56', '58'];
-
-// S06 fold-out text (5.4). [verify] against the PDF before final screens (R5). Plan C is all [P].
-export const DETAILS = {
-  A: {
-    covered: ['Building, contents and personal belongings, as you chose'],
-    limits: [
-      'Glass and sanitary ware: up to 10% of the building sum insured',
-      'Rent or alternative accommodation: up to 12 months, max 20% of the building sum insured and AED 500,000',
-      "Owner's liability: AED 2,000,000", 'Money: AED 1,000', 'Keys and locks: AED 2,000', 'Contents in the open: AED 2,500',
-      'Temporary removal: 20% of the contents sum insured',
-      "Tenant's liability: the higher of 20% of the contents sum insured or AED 100,000",
-      "Visitors' effects: AED 2,500", 'Legal liability: AED 2,000,000',
-      'Proof of value needed: contents items over AED 20,000, belongings over AED 5,000',
-    ],
-    notCovered: ['Loss not reported to the police', 'Deliberate acts', 'Home empty 60 days in a row', 'Loss before the start date', 'Wear and tear', 'Faulty work', 'Consequential loss'],
-  },
-  B: {
-    covered: ['Contents and personal belongings', 'Home assistance: 3 call-outs a period, up to AED 2,100', 'Liability'],
-    limits: ['Single item limit: AED 40,000 for contents, AED 10,000 for belongings', 'Other limits: not stated'],
-    notCovered: ['Home empty over 60 days in a row', 'Loss not reported to the police', 'Mysterious disappearance', 'Wear and tear', 'Consequential loss'],
-  },
-  C: { covered: ['[P]'], limits: ['[P]'], notCovered: ['[P]'] },
-};

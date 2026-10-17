@@ -1,16 +1,16 @@
-// Screen renderers for S01 to S04, E1, E2. Copy comes from data.js / copy-flow.js (no strings here except layout).
-import { screens, state, setAnswers, t, esc, tip, bandLabel } from './app.js';
+// Page renderers for P1, P2 and Help. Copy comes from data.js / copy-flow.js (no strings here except layout).
+import { screens, state, setAnswers, t, esc, tip, bandLabel, aed, query } from './app.js';
 import './copy-flow.js';
-import './copy-buy.js';
-import { ROLES, COVER_OPTIONS, PROPERTY_TYPES, EMIRATES, BELONGINGS_BANDS } from './domain.js';
-import { eligibility, listingNotes, validMobile } from './engine.js';
+import { COVER_OPTIONS, PROPERTY_TYPES, EMIRATES, CONTENTS_BANDS, BELONGINGS_BANDS } from './domain.js';
+import { eligibility, listingNotes, validMobile, rangeFor } from './engine.js';
 
 export const A = () => state.answers;
 export const go = (id) => { location.hash = '#/' + id; };
 export const bool = (v) => (v === 'true' ? true : v === 'false' ? false : undefined);
 const num = (v) => { const n = Number(String(v ?? '').replace(/[,\s]/g, '')); return v && Number.isFinite(n) && n > 0 ? n : undefined; };
 export const vals = (form) => Object.fromEntries(new FormData(form));
-const RANK = { s01: 1, s02: 2, s03: 3, s04: 4 };
+const RANK = { p1: 1, p2: 2 };
+const band = (v) => (v === '' || v == null ? null : Number(v));
 let flash = false; // "Answers saved" shows once on the next screen
 export const markSaved = () => { flash = true; };
 
@@ -53,10 +53,12 @@ export function showErrors(root, errs) {
 // One wiring for every question screen: live note, conditional fields, validate, save, route.
 function wire(el, id, next, { read, validate, live, after, afterSave }) {
   const form = el.querySelector('#f');
+  if (query().get('from') === 'p5') next = 'p5'; // Edit from P5 returns there
   const draft = () => ({ ...A(), ...read(form) });
   const refresh = () => {
     const d = draft();
     form.querySelectorAll('[data-show]').forEach((n) => { const [k, v] = n.dataset.show.split('='); n.hidden = String(d[k]) !== v; });
+    form.querySelectorAll('[data-has]').forEach((n) => { const [k, v] = n.dataset.has.split(':'); n.hidden = !(d[k] || []).includes(v); });
     const note = live?.(d); const box = form.querySelector('#live');
     box.hidden = !note; box.innerHTML = note || '';
     after?.(form, d);
@@ -81,124 +83,114 @@ function wire(el, id, next, { read, validate, live, after, afterSave }) {
 }
 export const err = (name, label, msg = t('choose')) => ({ name, label, msg });
 
-// ---- S01 ----
+// ---- P1 Your home: eligibility first, emirate last (5.2) ----
 const ROLE_IDS = ['owner_living_in', 'owner_renting_out', 'tenant'];
-screens.s01 = (el) => {
-  const s = (k) => t('s01.' + k), a = A();
-  const cards = t('s01.cards');
-  // The role choice sits first; the rules box, range and trust lines come after it (above the fold at 390px)
-  el.innerHTML = page(s('h1'), `<p class="t-body">${s('sub')} <a href="#/s14">${t('s14.resume')}</a></p>
+screens.p1 = (el) => {
+  const s = (k) => t('p1.' + k), a = A();
+  const cards = t('p1.cards');
+  el.innerHTML = page(s('h1'), `<p class="t-body">${s('sub')}</p>
+    <div class="box"><p class="t-label">${s('boxTitle')}</p><p class="t-body">${s('boxBody')}</p><p class="t-meta">${s('range')}</p></div>
     ${radios('role', s('question'), ROLE_IDS.map((r, i) => [r, cards[i][0], cards[i][1]]), a.role)}
     <div data-show="role=tenant">${yesno('tenancy12m', s('tenantQ'), a.tenancy12m)}</div>
-    <div class="box"><p class="t-label">${s('boxTitle')}</p><p class="t-body">${s('boxBody')}</p></div>
-    <p class="t-meta">${s('range')}</p><p class="t-meta">${s('trust')}</p>`, { back: false });
-  wire(el, 's01', 's02', {
-    read: (f) => { const d = vals(f); return { role: d.role, tenancy12m: d.role === 'tenant' ? bool(d.tenancy12m) : null }; },
-    validate: (d) => [
-      ...(d.role ? [] : [err('role', s('errRole'))]),
-      ...(d.role === 'tenant' && typeof d.tenancy12m !== 'boolean' ? [err('tenancy12m', s('errTenancy'))] : []),
-    ],
-    live: (d) => (d.role === 'tenant' && d.tenancy12m === false ? seeWhy(s('noteTenancy')) : ''),
-    afterSave: (a2) => { // a changed role can invalidate earlier cover answers
-      if (a2.covers && !COVER_OPTIONS[a2.role].some((o) => o.join('+') === a2.covers.join('+'))) setAnswers({ covers: null, rebuildValue: null, contentsValue: null, belongingsBand: null, highestItem: null });
-    },
-  });
-};
-
-// ---- S02 ----
-screens.s02 = (el) => {
-  const s = (k) => t('s02.' + k), a = A();
-  el.innerHTML = page(s('h1'), `
     ${radios('propertyType', s('type'), PROPERTY_TYPES.map((p) => [p, t('values.' + p)]), a.propertyType)}
+    ${yesno('age18Plus', s('age'), a.age18Plus, s('ageWhy'))}
+    ${yesno('emptyOver60', s('empty'), a.emptyOver60, s('emptyWhy'))}
     <div class="field"><label class="t-h2" for="emirate">${s('emirate')}</label>
       <select id="emirate" name="emirate" aria-describedby="err-emirate"><option value="">${s('emirateChoose')}</option>
       ${EMIRATES.map((x) => `<option value="${x}"${a.emirate === x ? ' selected' : ''}>${t('values.' + x)}</option>`).join('')}</select>
-      <p class="err t-body" id="err-emirate" hidden></p></div>
-    ${yesno('age18Plus', s('age'), a.age18Plus, s('ageWhy'))}
-    ${yesno('emptyOver60', s('empty'), a.emptyOver60, s('emptyWhy'))}`);
-  wire(el, 's02', 's03', {
-    read: (f) => { const d = vals(f); return { propertyType: d.propertyType, emirate: d.emirate || undefined, age18Plus: bool(d.age18Plus), emptyOver60: bool(d.emptyOver60) }; },
+      <p class="err t-body" id="err-emirate" hidden></p></div>`, { back: false });
+  wire(el, 'p1', 'p2', {
+    read: (f) => {
+      const d = vals(f);
+      return { role: d.role, tenancy12m: d.role === 'tenant' ? bool(d.tenancy12m) : null, propertyType: d.propertyType,
+        age18Plus: bool(d.age18Plus), emptyOver60: bool(d.emptyOver60), emirate: d.emirate || undefined };
+    },
     validate: (d) => [
-      ...(d.propertyType ? [] : [err('propertyType', s('type'))]),
-      ...(d.emirate ? [] : [err('emirate', s('emirate'))]),
-      ...(typeof d.age18Plus === 'boolean' ? [] : [err('age18Plus', s('age'))]),
-      ...(typeof d.emptyOver60 === 'boolean' ? [] : [err('emptyOver60', s('empty'))]),
+      ...(d.role ? [] : [err('role', s('errRole'))]),
+      ...(d.role === 'tenant' && typeof d.tenancy12m !== 'boolean' ? [err('tenancy12m', s('errTenancy'))] : []),
+      ...(d.propertyType ? [] : [err('propertyType', s('errType'))]),
+      ...(typeof d.age18Plus === 'boolean' ? [] : [err('age18Plus', s('errAge'))]),
+      ...(typeof d.emptyOver60 === 'boolean' ? [] : [err('emptyOver60', s('errEmpty'))]),
+      ...(d.emirate ? [] : [err('emirate', s('errEmirate'))]),
     ],
     live: (d) => {
       const e = eligibility(d);
-      if (e.status === 'ok' || e.screen !== 's02') return '';
-      return e.route === 'e1' ? seeWhy(s('noteNo')) : seeWhy(s('noteOther'));
+      if (e.status === 'ok' || e.screen !== 'p1') return '';
+      return seeWhy(s(e.variant === 'tenancy' ? 'noteTenancy' : e.status === 'ineligible' ? 'noteNo' : 'noteOther'));
+    },
+    afterSave: (a2) => { // a changed role can invalidate earlier cover answers
+      if (a2.covers && !COVER_OPTIONS[a2.role].some((o) => o.join('+') === a2.covers.join('+'))) setAnswers({ covers: null, rebuildValue: null, contentsBand: null, belongingsBand: null, highestItem: null });
     },
   });
 };
 
-// ---- S03 ----
-screens.s03 = (el) => {
+// ---- P2 Your cover: cover, values, claims, live range (5.3) ----
+const bandSelect = (name, label, bands, cur) => `<div class="field"><label class="t-h2" for="${name}">${label}</label>
+  <select id="${name}" name="${name}" aria-describedby="err-${name}"><option value="">${t('p2.bandChoose')}</option>
+  ${bands.map((_, i) => `<option value="${i}"${cur === i ? ' selected' : ''}>${bandLabel(bands, i)}</option>`).join('')}</select>
+  <p class="err t-body" id="err-${name}" hidden></p></div>`;
+screens.p2 = (el) => {
   const a = A();
-  if (!a.role) return go('s01');
-  const s = (k) => t('s03.' + k);
+  if (!a.role) return go('p1');
+  const s = (k) => t('p2.' + k), term = (k) => `<p class="t-meta">${tip(...t('p2.terms.' + k))}</p>`;
+  const rent = a.role === 'owner_renting_out';
   const opts = COVER_OPTIONS[a.role].map((o) => [o.join('+'), o.map((c) => t('values.' + c)).join(', ')]);
-  const hidden = a.role === 'owner_renting_out' ? s('hiddenOwnerRent') : a.role === 'tenant' ? s('hiddenTenant') : '';
   el.innerHTML = page(s('h1'), `
-    ${radios('covers', s('errCover'), opts, (a.covers || []).join('+'))}
-    ${hidden ? `<p class="t-meta">${hidden}</p>` : ''}
+    ${rent ? `<div class="box"><p class="t-h2">${s('fixed')}</p><p class="t-body">${s('hiddenOwnerRent')}</p></div>`
+    : radios('covers', s('coverQ'), opts, (a.covers || []).join('+'), a.role === 'tenant' ? `<p class="t-meta">${s('hiddenTenant')}</p>` : '')}
+    <div class="stack">${['building', 'contents', 'personal_belongings'].map((c) => `<p class="note t-body" data-has="covers:${c}">${esc(s('teach.' + c))}</p>`).join('')}</div>
     <p class="note t-body" id="dubai" hidden>${s('dubai')}</p>
+    <div data-has="covers:building">${textField('rebuildValue', s('rebuild'), a.rebuildValue, s('format'), term('rebuild'))}</div>
+    <div data-has="covers:contents" class="stack">${bandSelect('contentsBand', s('contents'), CONTENTS_BANDS, a.contentsBand)}${term('contents')}</div>
+    <div data-has="covers:personal_belongings">${bandSelect('belongingsBand', s('belongings'), BELONGINGS_BANDS, a.belongingsBand)}</div>
+    <div id="itembox">${textField('highestItem', s('item'), a.highestItem, s('format'), term('limit'))}</div>
     ${yesno('claims5y', s('claims'), a.claims5y, s('claimsWhy'))}
-    <details class="fold"><summary class="t-body">${s('whatCovers')}</summary><div class="stack">${ROLES[a.role].allowedCovers.map((c) => `<div><p class="t-body"><b>${t('values.' + c)}</b></p><p class="t-body">${esc(t('s03.tips.' + c))}</p></div>`).join('')}</div></details>
-    ${a.role === 'tenant' ? '' : `<p class="t-meta">${s('staff')}</p>`}`);
-  wire(el, 's03', 's04', {
-    read: (f) => { const d = vals(f); return { covers: d.covers ? d.covers.split('+') : undefined, claims5y: bool(d.claims5y) }; },
-    validate: (d) => [
-      ...(d.covers ? [] : [err('covers', s('errCover'))]),
-      ...(typeof d.claims5y === 'boolean' ? [] : [err('claims5y', s('errClaims'))]),
-    ],
-    live: (d) => (d.claims5y === true ? seeWhy(s('noteClaims')) : ''),
-    after: (form, d) => {
-      form.querySelector('#dubai').hidden = !(d.role?.startsWith('owner') && d.propertyType === 'apartment' && d.emirate === 'dubai' && d.covers?.includes('building'));
-    },
-    afterSave: (a2) => { // drop values for covers no longer chosen
-      const c = a2.covers || [];
-      setAnswers({
-        rebuildValue: c.includes('building') ? a2.rebuildValue : null,
-        contentsValue: c.includes('contents') ? a2.contentsValue : null,
-        belongingsBand: c.includes('personal_belongings') ? a2.belongingsBand : null,
-        highestItem: c.includes('contents') || c.includes('personal_belongings') ? a2.highestItem : null,
-      });
-    },
-  });
-};
-
-// ---- S04 ----
-screens.s04 = (el) => {
-  const a = A(), c = a.covers;
-  if (!c) return go('s03');
-  const s = (k) => t('s04.' + k);
-  const hasB = c.includes('building'), hasC = c.includes('contents'), hasP = c.includes('personal_belongings');
-  const termLine = (term, text) => `<p class="t-meta">${tip(term, text)}</p>`;
-  el.innerHTML = page(s('h1'), `
-    ${hasB ? textField('rebuildValue', s('rebuild'), a.rebuildValue, s('format'), `<p class="t-meta">${s('rebuildHelp')}</p>${termLine(s('termSum'), s('sumTip'))}`) : ''}
-    ${hasC ? textField('contentsValue', s('contents'), a.contentsValue, s('format'), `<p class="t-meta">${s('contentsHelp')}</p>`) : ''}
-    ${hasP ? `<div class="field"><label class="t-h2" for="belongingsBand">${s('belongings')}</label><p class="t-meta">${s('belongingsHelp')}</p>
-      <select id="belongingsBand" name="belongingsBand" aria-describedby="err-belongingsBand"><option value="">${s('bandChoose')}</option>
-      ${BELONGINGS_BANDS.map((_, i) => `<option value="${i}"${a.belongingsBand === i ? ' selected' : ''}>${bandLabel(i)}</option>`).join('')}</select>
-      <p class="err t-body" id="err-belongingsBand" hidden></p></div>` : ''}
-    ${hasC || hasP ? textField('highestItem', s('item'), a.highestItem, s('format'), `<p class="t-meta">${s('itemHelp')}</p>${termLine(s('termLimit'), s('limitTip'))}`) : ''}`,
+    <div class="box accent" id="range" aria-live="polite" hidden></div>`,
   { next: t('seePlans') });
-  wire(el, 's04', 's05', {
-    read: (f) => { const d = vals(f); return { rebuildValue: num(d.rebuildValue), contentsValue: num(d.contentsValue), belongingsBand: d.belongingsBand ? Number(d.belongingsBand) : undefined, highestItem: num(d.highestItem) }; },
-    validate: (d) => [
-      ...(hasB && !d.rebuildValue ? [err('rebuildValue', s('rebuild'), t('number'))] : []),
-      ...(hasC && !d.contentsValue ? [err('contentsValue', s('contents'), t('number'))] : []),
-      ...(hasP && d.belongingsBand == null ? [err('belongingsBand', s('belongings'))] : []),
-      ...((hasC || hasP) && !d.highestItem ? [err('highestItem', s('item'), t('number'))] : []),
-    ],
-    live: (d) => listingNotes(d).map((n) => `<span>${n === 'contents' ? s('noteContents') : s('noteBelongings')}</span>`).join('<br>'),
+  wire(el, 'p2', 'p3', {
+    read: (f) => {
+      const d = vals(f);
+      const covers = rent ? ['building'] : d.covers ? d.covers.split('+') : undefined;
+      const has = (c) => !!covers?.includes(c);
+      return {
+        covers, claims5y: bool(d.claims5y),
+        rebuildValue: has('building') ? num(d.rebuildValue) : null,
+        contentsBand: has('contents') ? band(d.contentsBand) : null,
+        belongingsBand: has('personal_belongings') ? band(d.belongingsBand) : null,
+        highestItem: has('contents') || has('personal_belongings') ? num(d.highestItem) : null,
+      };
+    },
+    validate: (d) => {
+      const has = (c) => !!d.covers?.includes(c);
+      return [
+        ...(d.covers ? [] : [err('covers', s('errCover'))]),
+        ...(has('building') && !d.rebuildValue ? [err('rebuildValue', s('errRebuild'), t('number'))] : []),
+        ...(has('contents') && d.contentsBand == null ? [err('contentsBand', s('errContents'))] : []),
+        ...(has('personal_belongings') && d.belongingsBand == null ? [err('belongingsBand', s('errBelongings'))] : []),
+        ...((has('contents') || has('personal_belongings')) && !d.highestItem ? [err('highestItem', s('errItem'), t('number'))] : []),
+        ...(typeof d.claims5y === 'boolean' ? [] : [err('claims5y', s('errClaims'))]),
+      ];
+    },
+    live: (d) => {
+      const e = eligibility(d);
+      if (e.status !== 'ok' && e.screen === 'p2') return seeWhy(s(e.variant === 'claims' ? 'noteClaims' : 'noteHigh'));
+      return listingNotes(d).map((n) => `<span>${n === 'contents' ? s('noteContents') : s('noteBelongings')}</span>`).join('<br>');
+    },
+    after: (form, d) => {
+      form.querySelector('#itembox').hidden = !(d.covers?.includes('contents') || d.covers?.includes('personal_belongings'));
+      form.querySelector('#dubai').hidden = !(d.role?.startsWith('owner') && d.propertyType === 'apartment' && d.emirate === 'dubai' && d.covers?.includes('building'));
+      // Live "From AED x to y" once the values are set and nothing sends the user to a person
+      const r = eligibility(d).status === 'ok' ? rangeFor(d) : null;
+      const box = form.querySelector('#range');
+      box.hidden = !r;
+      if (r) box.innerHTML = `<p class="t-label">${s('rangeTitle')}</p><p class="t-body"><b>${s('range').replace('{min}', aed(r.min)).replace('{max}', aed(r.max))}</b> <span class="price-label">${t('priceLabel')}</span></p>`;
+    },
   });
 };
 
-// ---- E1 / E2 and the call sheet ----
+// ---- Help call sheet ----
 const quoteId = () => {
-  if (!A().quoteId) setAnswers({ quoteId: 'Q-' + String(Math.floor(Math.random() * 900000) + 100000) });
+  if (!A().quoteId) setAnswers({ quoteId: 'AU-H-' + String(Math.floor(Math.random() * 9e7) + 1e7) }); // format [Invented]
   return A().quoteId;
 };
 
@@ -241,31 +233,17 @@ function callSheet(el) {
   };
 }
 
-const blockActions = (el, screen) => {
-  quoteId();
-  el.insertAdjacentHTML('beforeend', `<div class="row"><a class="btn" href="#/${screen}">${t('changeAnswer')}</a>
-    <button type="button" class="btn btn-primary" data-call>${t('requestCall')}</button></div>
-    <p class="t-body">${t('e1.contact')}</p><p class="t-meta">${t('keepNote')}</p>`);
-  callSheet(el);
-};
-
-screens.e1 = (el) => {
-  const e = eligibility(A());
-  if (e.status === 'referred') return go('e2');
-  const [why, alt] = e.status === 'ok' ? [t('e1.none'), ''] : t('e1.variants.' + e.variant);
+// ---- Help: one template, not eligible or referred (5.10) ----
+screens.help = (el) => {
+  const e = eligibility(A()), h = (k) => t('help.' + k), id = quoteId();
+  const [why, alt] = e.status === 'ok' ? [h('none'), ''] : t('help.variants.' + e.variant);
   const answer = e.variant === 'home_type' ? t('values.' + A().propertyType) : '';
-  el.innerHTML = `<h1 class="t-title">${t('e1.h1')}</h1>
-    <div class="box"><p class="t-label">${t('e1.why')}</p><p class="t-body">${esc(why).replace('{answer}', esc(answer))}</p></div>
-    ${alt ? `<div class="box"><p class="t-label">${t('e1.can')}</p><p class="t-body">${esc(alt)}</p></div>` : ''}`;
-  blockActions(el, e.screen || 's01');
-};
-
-screens.e2 = (el) => {
-  const e = eligibility(A());
-  if (e.status === 'ineligible') return go('e1');
-  const id = quoteId();
-  el.innerHTML = `<h1 class="t-title">${t('e2.h1')}</h1>
-    <div class="box"><p class="t-body">${esc(e.status === 'ok' ? t('e1.none') : t('e2.variants.' + e.variant))}</p>
-    <p class="t-body"><b>${esc(t('e2.id')).replace('{id}', esc(id))}</b></p></div>`;
-  blockActions(el, e.screen || 's01');
+  el.innerHTML = `<h1 class="t-title">${h(e.status === 'referred' ? 'h1Ref' : 'h1No')}</h1>
+    <div class="box"><p class="t-label">${h('why')}</p><p class="t-body">${esc(why).replace('{answer}', esc(answer))}</p>
+    <p class="t-body"><b>${esc(h('id')).replace('{id}', esc(id))}</b></p></div>
+    ${alt ? `<div class="box"><p class="t-label">${h('can')}</p><p class="t-body">${esc(alt)}</p></div>` : ''}
+    <div class="row"><a class="btn" href="#/${e.screen || 'p1'}">${t('changeAnswer')}</a>
+    <button type="button" class="btn btn-primary" data-call>${t('requestCall')}</button></div>
+    <p class="t-body">${h('contact')}</p><p class="t-meta">${t('keepNote')}</p>`;
+  callSheet(el);
 };

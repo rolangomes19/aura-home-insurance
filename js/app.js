@@ -1,12 +1,12 @@
-import { COPY, ROUTES, AR_SCREENS, ANSWER_FIELDS } from './data.js';
-import { BELONGINGS_BANDS } from './domain.js';
+import { COPY, ROUTES, AR_SCREENS, ANSWER_FIELDS, RESUMABLE } from './data.js';
+import { BELONGINGS_BANDS, CONTENTS_BANDS } from './domain.js';
 import { story } from './story.js';
 import './copy-story.js';
 
-const KEY = 'aura-home-v1';
+const KEY = 'aura-home-v2';
 const $ = (s) => document.querySelector(s);
 
-// ---- state: one AnswerSet, persisted so Back and S14 resume work ----
+// ---- state: one AnswerSet plus the selection (planId, addOns, startDate), persisted so Back and P4 resume work ----
 const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
 export const state = Object.assign({ answers: {}, lang: 'en' }, load());
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* private mode */ } };
@@ -22,25 +22,24 @@ export const t = (path, lang = state.lang) => {
 // Western digits [P, confirm with reviewer]; Arabic puts the unit after the number
 export const aed = (n) => (state.lang === 'ar' ? `${Number(n).toLocaleString('en-US')} درهم` : 'AED ' + Number(n).toLocaleString('en-US'));
 // Every price goes through here so the label can never be missing (3G, X11)
-export const price = (n) =>
-  `<span class="price"><b>${aed(n)}</b> ${t('perYear')}. <span class="price-label">${t('priceLabel')}</span></span>`;
+export const price = (n, unit = '') =>
+  `<span class="price"><b>${aed(n)}</b> ${unit ? unit + ', ' : ''}${t('perYear')}. <span class="price-label">${t('priceLabel')}</span></span>`;
 // Term tip: dotted underline, one sentence, one example (D8)
+export const query = () => new URLSearchParams(location.hash.split('?')[1] || '');
 export const tip = (term, text) =>
   `<button type="button" class="tip" aria-expanded="false" data-tip>${esc(term)}</button><span class="tip-text t-meta" role="note" hidden>${esc(text)}</span>`;
 
-// ---- screens: later phases register renderers here ----
+// ---- screens register renderers here ----
 export const screens = {};
-const placeholder = (id) => (el) => {
-  el.innerHTML = `<h1 class="t-title">${id.toUpperCase()}</h1><p class="t-body">${t('placeholderScreen')}</p>`;
-};
 
-export const bandLabel = (i) => {
-  const [a, b] = BELONGINGS_BANDS[i], n = (x) => x.toLocaleString('en-US');
+export const bandLabel = (bands, i) => {
+  const [a, b] = bands[i], n = (x) => x.toLocaleString('en-US');
   if (state.lang === 'ar') return b ? `${n(a)} إلى ${n(b)} درهم` : `${n(a)} درهم فأكثر`;
   return b ? `AED ${n(a)} to ${n(b)}` : `AED ${n(a)} and above`;
 };
-const fmt = (key, v) => {
-  if (key === 'belongingsBand') return bandLabel(v);
+export const fmt = (key, v) => {
+  if (key === 'belongingsBand') return bandLabel(BELONGINGS_BANDS, v);
+  if (key === 'contentsBand') return bandLabel(CONTENTS_BANDS, v);
   if (typeof v === 'number') return aed(v);
   if (Array.isArray(v)) return v.map((x) => t('values.' + x) ?? x).join(', ');
   if (v === true) return t('yes');
@@ -89,7 +88,9 @@ const inPop = (el) => el?.closest?.('.tok, #pop');
 function renderChrome(id) {
   const step = ROUTES[id];
   $('#tag').textContent = t('tag');
-  $('#progress').innerHTML = COPY.en.steps.map((_, i) =>
+  $('.skip').textContent = t('skip');
+  $('#resume-link').textContent = t('resume');
+  $('#progress').innerHTML = step === 4 ? `<span class="done now all" aria-current="step">${t('done')}</span>` : COPY.en.steps.map((_, i) =>
     `<span class="${i < step ? 'done' : i === step ? 'now' : ''}"${i === step ? ' aria-current="step"' : ''}>${t('steps')[i]}</span>`).join('');
   $('#footer').innerHTML = (t('footer').length > 1 ? t('footer') : COPY.en.footer).map((l) => `<p class="t-meta">${l}</p>`).join('');
   const arOk = AR_SCREENS.includes(id);
@@ -110,14 +111,16 @@ function setLang(lang) {
 }
 
 export function route() {
-  let id = location.hash.replace('#/', '');
-  if (!(id in ROUTES)) id = 's01';
+  let id = location.hash.replace('#/', '').split('?')[0];
+  if (!(id in ROUTES)) id = 'p1';
+  if (RESUMABLE.includes(id) && state.answers.lastPage !== id) { state.answers.lastPage = id; save(); }
+  $('#price-slot').innerHTML = ''; // only P3 fills it
   document.documentElement.lang = state.lang;
   document.documentElement.dir = state.lang === 'ar' ? 'rtl' : 'ltr';
   renderChrome(id);
   renderAnswers();
-  (screens[id] || placeholder(id))($('#view'));
-  document.title = `${id.toUpperCase()} | Aura prototype`;
+  screens[id]($('#view'));
+  document.title = `${t('steps')[ROUTES[id]] ?? t('done')} | Aura prototype`;
   $('#view').focus();
   window.scrollTo(0, 0);
 }
@@ -146,12 +149,11 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && popTok) 
 window.addEventListener('scroll', closePop, { passive: true });
 window.addEventListener('resize', closePop);
 
-// Answers panel: always open at desktop width, collapsible below
+// Answers panel: always open at desktop width; a collapsed bar on top below it
 const desktop = matchMedia('(min-width:1280px)');
-const syncPanel = () => { if (desktop.matches) $('#answers').open = true; };
+const syncPanel = () => { $('#answers').open = desktop.matches; };
 export function start() {
   desktop.addEventListener('change', syncPanel);
-  window.addEventListener('hashchange', () => { route(); syncPanel(); });
-  $('#answers').open = true; // below the main content on small screens, so it can start open
+  window.addEventListener('hashchange', route);
   route(); syncPanel();
 }
