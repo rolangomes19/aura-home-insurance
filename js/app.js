@@ -120,10 +120,39 @@ export function route() {
   renderChrome(id);
   renderAnswers();
   screens[id]($('#view'));
+  enter($('#view'));
   document.title = `${t('steps')[ROUTES[id]] ?? t('done')} | Aura prototype`;
   $('#view').focus();
   window.scrollTo(0, 0);
 }
+
+// Short staggered entrance for a new page; the class comes off so later reveals use their own transition
+let enterTimer;
+function enter(view) {
+  [...view.children].flatMap((c) => (c.tagName === 'FORM' ? [...c.children] : [c]))
+    .forEach((n, i) => n.style.setProperty('--i', Math.min(i, 10)));
+  view.classList.remove('enter'); void view.offsetWidth; view.classList.add('enter');
+  clearTimeout(enterTimer); enterTimer = setTimeout(() => view.classList.remove('enter'), 1100);
+}
+
+// Focus follows the answer: a tap or click on a choice moves on to the next unanswered question, then to the main button.
+// Keyboard changes (arrow keys in a radio group) never move focus.
+let viaPointer = false;
+document.addEventListener('pointerdown', () => { viaPointer = true; }, true);
+document.addEventListener('keydown', () => { viaPointer = false; }, true);
+const answered = (q) => [...q.querySelectorAll('input,select')].some((i) => (/radio|checkbox/.test(i.type) ? i.checked : i.value));
+document.addEventListener('change', (e) => {
+  const q = e.target.closest('#f .field');
+  if (!viaPointer || !q || !(/radio|checkbox/.test(e.target.type) || e.target.tagName === 'SELECT')) return;
+  setTimeout(() => { // after the form's refresh has shown or hidden follow-up questions
+    const all = [...document.querySelectorAll('#f .field')].filter((f) => f.offsetParent);
+    const next = all.slice(all.indexOf(q) + 1).find((f) => !answered(f));
+    const el = next ? next.querySelector('input:checked, input, select') : document.querySelector('#f [type=submit]');
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    el.closest('.field, .row').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+  }, 220);
+});
 
 // ---- events ----
 document.addEventListener('click', (e) => {
