@@ -24,6 +24,21 @@ export const aed = (n) => (state.lang === 'ar' ? `${Number(n).toLocaleString('en
 // Every price goes through here so the label can never be missing (3G, X11)
 export const price = (n, unit = '') =>
   `<span class="price"><b>${aed(n)}</b> ${unit ? unit + ', ' : ''}${t('perYear')}. <span class="price-label">${t('priceLabel')}</span></span>`;
+// Counts a shown price from its old value to the new one; callers keep the accessible final value elsewhere
+export function roll(el, from, to) {
+  if (!el) return;
+  const show = (v) => { el.textContent = aed(Math.round(v)); };
+  cancelAnimationFrame(el._raf);
+  if (from == null || from === to || matchMedia('(prefers-reduced-motion: reduce)').matches) { delete el.dataset.trend; return show(to); }
+  el.dataset.trend = to > from ? 'up' : 'down';
+  const t0 = performance.now();
+  const step = (now) => {
+    const p = Math.min(1, (now - t0) / 650);
+    show(from + (to - from) * (1 - (1 - p) ** 4));
+    if (p < 1) el._raf = requestAnimationFrame(step); else delete el.dataset.trend;
+  };
+  show(from); el._raf = requestAnimationFrame(step);
+}
 // Term tip: dotted underline, one sentence, one example (D8)
 export const query = () => new URLSearchParams(location.hash.split('?')[1] || '');
 export const tip = (term, text) =>

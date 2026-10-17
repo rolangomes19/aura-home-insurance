@@ -228,7 +228,12 @@ dialog::backdrop{background:oklch(0.2 0.06 260 / .45);backdrop-filter:blur(4px);
   animation:rise-bar .45s var(--ease-drawer)}
 @keyframes rise-bar{from{transform:translateY(100%)}}
 .pricebar summary{gap:8px;flex-wrap:wrap;justify-content:space-between}
-#pb-total{font-family:var(--display);font-size:20px;letter-spacing:-0.02em;color:var(--navy)}
+#pb-total{font-family:var(--display);font-size:24px;line-height:1.1;font-weight:700;letter-spacing:-0.025em;color:var(--navy)}
+#pb-total .pb-unit,.price-big .price{font-family:var(--font);font-size:14px;font-weight:500;letter-spacing:0;color:var(--muted)}
+#pb-num,.price-big b{display:inline-block;transition:color .3s ease}
+#pb-num[data-trend=up],.price-big b[data-trend=up]{color:var(--accent)}
+#pb-num[data-trend=down],.price-big b[data-trend=down]{color:oklch(0.55 0.13 200)}
+@media (min-width:1280px){#pb-total{font-size:38px}#pb-total .pb-unit{display:block;margin-top:6px}}
 body:has(.pricebar){padding-bottom:76px}
 .chip-opt{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border:1px solid var(--line-2);border-radius:999px;background:var(--card);cursor:pointer;
   transition:border-color .2s ease,background-color .2s ease,transform .16s var(--ease-out)}
@@ -241,7 +246,8 @@ body:has(.pricebar){padding-bottom:76px}
 .addon .field input{max-width:120px}
 .facts{margin:0;padding-inline-start:18px}
 .keyrows{grid-template-columns:1fr}
-.price-big b{font-family:var(--display);font-size:24px;letter-spacing:-0.02em;color:var(--navy)}
+.price-big b{font-family:var(--display);font-size:44px;line-height:1.05;font-weight:700;letter-spacing:-0.03em;color:var(--navy);margin-inline-end:6px}
+@media (min-width:768px){.price-big b{font-size:52px}}
 .drawer{margin:0;width:100%;max-width:100%;height:100%;max-height:100%;border-radius:0;padding:20px;overflow:auto}
 .drawer[open]{animation:drawer-in .45s var(--ease-drawer)}
 @keyframes drawer-in{from{transform:translateY(24px);opacity:0}}
@@ -259,6 +265,8 @@ body:has(.pricebar){padding-bottom:76px}
   body:has(.pricebar){padding-bottom:0}
 }
 
+/* P1 "Before you start" in the side column */
+.side .box.before{border:none;border-radius:18px;box-shadow:var(--sh-2);padding:20px;animation:rise .55s .12s var(--ease-out) both}
 /* Page entrance: content rises into place in a short cascade; follow-up questions ease in when shown */
 #view.enter > :not(form),#view.enter > form > *{animation:rise .55s var(--ease-out) both;animation-delay:calc(var(--i,0) * 45ms)}
 @keyframes rise{from{opacity:0;transform:translateY(14px);filter:blur(3px)}}

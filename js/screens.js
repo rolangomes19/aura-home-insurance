@@ -88,8 +88,10 @@ const ROLE_IDS = ['owner_living_in', 'owner_renting_out', 'tenant'];
 screens.p1 = (el) => {
   const s = (k) => t('p1.' + k), a = A();
   const cards = t('p1.cards');
-  el.innerHTML = page(s('h1'), `<p class="t-body">${s('sub')}</p>
-    <div class="box"><p class="t-label">${s('boxTitle')}</p><p class="t-body">${s('boxBody')}</p><p class="t-meta">${s('range')}</p></div>
+  const before = `<div class="box before"><p class="t-label">${s('boxTitle')}</p><p class="t-body">${s('boxBody')}</p><p class="t-meta">${s('range')}</p></div>`;
+  // shortcut: placed once per render by width, so resizing across 1280px keeps it where it was until the next route
+  const wide = matchMedia('(min-width:1280px)').matches;
+  el.innerHTML = page(s('h1'), `<p class="t-body">${s('sub')}</p>${wide ? '' : before}
     ${radios('role', s('question'), ROLE_IDS.map((r, i) => [r, cards[i][0], cards[i][1]]), a.role)}
     <div data-show="role=tenant">${yesno('tenancy12m', s('tenantQ'), a.tenancy12m)}</div>
     ${radios('propertyType', s('type'), PROPERTY_TYPES.map((p) => [p, t('values.' + p)]), a.propertyType)}
@@ -99,6 +101,7 @@ screens.p1 = (el) => {
       <select id="emirate" name="emirate" aria-describedby="err-emirate"><option value="">${s('emirateChoose')}</option>
       ${EMIRATES.map((x) => `<option value="${x}"${a.emirate === x ? ' selected' : ''}>${t('values.' + x)}</option>`).join('')}</select>
       <p class="err t-body" id="err-emirate" hidden></p></div>`, { back: false });
+  if (wide) document.querySelector('#price-slot').innerHTML = before;
   wire(el, 'p1', 'p2', {
     read: (f) => {
       const d = vals(f);

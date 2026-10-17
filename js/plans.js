@@ -1,6 +1,6 @@
 // P3 plans and price: suggested plan open, other plans collapsed with prices, add-ons, live price panel,
 // details drawer (brief 5.4, 7). Every price comes from engine.js.
-import { screens, state, setAnswers, t, esc, price, tip, aed } from './app.js';
+import { screens, state, setAnswers, t, esc, price, tip, aed, roll } from './app.js';
 import './copy-plans.js';
 import { PLANS, ROLES, ADDONS, ADDON_ORDER } from './domain.js';
 import { offers, suggest, sortOffers, getTotals, addOnState, carryAddOns, eligibility, changedField, priceSig, PRICE_FIELDS } from './engine.js';
@@ -12,6 +12,7 @@ let sortKey = 'suggested';
 let open = new Set();  // collapsed rows showing their compare rows
 let compare = false;
 let notices = [];      // one-line notices shown on the next draw
+let shown = null;      // total last shown on the active plan, so a redraw counts from it
 
 const name = (id) => t('plans.' + id + '.name');
 const nameOf = (id) => t('values.' + id);
@@ -72,11 +73,15 @@ function paintPanel(plan, tot) {
   const slot = document.querySelector('#price-slot'), p = (k) => t('p3.panel.' + k);
   if (!slot.querySelector('#pricebar')) {
     slot.innerHTML = `<details class="pricebar panel" id="pricebar"${matchMedia('(min-width:1280px)').matches ? ' open' : ''}>
-      <summary><span class="t-body">${p('total')}</span> <b id="pb-total" aria-live="polite"></b></summary>
+      <summary><span class="t-body">${p('total')}</span> <b id="pb-total"><span id="pb-num" aria-hidden="true"></span> <span class="pb-unit">${t('perYear')}</span></b>
+        <span class="sr-only" id="pb-live" aria-live="polite"></span></summary>
       <p class="price-label">${t('priceLabel')}</p><dl class="rows" id="pb-rows"></dl></details>`;
   }
   const add = tot.addOns.length ? tot.addOns.map((x) => `${nameOf(x.id)}${x.qty > 1 ? ` × ${x.qty}` : ''}: ${aed(x.amount)}`).join('<br>') : p('none');
-  slot.querySelector('#pb-total').textContent = `${aed(tot.totalNow)} ${t('perYear')}`;
+  const num = slot.querySelector('#pb-num');
+  roll(num, num.dataset.v == null ? null : Number(num.dataset.v), tot.totalNow);
+  num.dataset.v = tot.totalNow;
+  slot.querySelector('#pb-live').textContent = `${aed(tot.totalNow)} ${t('perYear')}`;
   slot.querySelector('#pb-rows').innerHTML = `<dt class="t-meta">${esc(name(plan.id))}</dt><dd></dd>
     <dt class="t-meta">${p('base')}</dt><dd class="t-body">${aed(tot.base)}</dd>
     <dt class="t-meta">${p('addons')}</dt><dd class="t-body">${add}</dd>
@@ -180,6 +185,8 @@ function draw(el) {
     <button type="button" class="btn btn-primary" data-continue>${esc(s('continue').replace('{plan}', name(activeId)))}</button></div>
     <div id="drawer-slot"></div>`;
   notices = [];
+  roll(el.querySelector('.price-big .price b'), shown, tot.totalNow);
+  shown = tot.totalNow;
   paintPanel(plan, tot);
 
   const redraw = (focus) => { draw(el); (focus && el.querySelector(focus))?.focus(); };
@@ -230,6 +237,7 @@ screens.p3 = (el) => {
   const list = offers(a);
   if (!list.some((o) => o.fits)) return go('help'); // 0 plans fit: no dead end (8.4)
   if (list.some((o) => o.fits && o.base == null)) return go('p2'); // a value is missing
+  shown = null; // a fresh visit shows the price without counting
   const sig = priceSig(a) + a.highestItem;
   if (sig === seen) return draw(el);
   el.innerHTML = `<h1 class="t-title">${t('p3.h1')}</h1><p class="t-body" role="status">${t('p3.loading')}</p>` +
