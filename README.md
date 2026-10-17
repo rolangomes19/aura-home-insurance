@@ -12,10 +12,10 @@ Vanilla HTML/CSS/JS, no build step. ES modules need a web server (not `file://`)
 python -m http.server 8123
 ```
 
-Open http://localhost:8123. Tests (engine only):
+Open http://localhost:8123. Tests (engine and story, no DOM):
 
 ```bash
-node --test tests/engine.test.mjs
+node --test tests/*.test.mjs
 ```
 
 ## Layout
@@ -24,8 +24,9 @@ node --test tests/engine.test.mjs
 | --- | --- |
 | `js/domain.js` | Roles, covers, plans A/B/C, limits, excess, prices, eligibility rules |
 | `js/engine.js` | Pure functions: `eligibility`, `fits`, `suggest`, `total`, `listingNotes`, `validMobile` |
+| `js/story.js` | Pure `story(answers, copy, fmt)`: the answers as a first-person account; each token names the answer it edits |
 | `js/data.js`, `copy-*.js` | All copy (EN, partial AR). No copy in renderers |
-| `js/app.js` | Router, state (localStorage), `price()` helper, term tips |
+| `js/app.js` | Router, state (localStorage), `price()` helper, term tips, story panel and its pop-up |
 | `js/screens.js`, `plans.js`, `buy.js` | S01-S04 + E1/E2, S05-S06, S07-S14 |
 
 ## What is placeholder

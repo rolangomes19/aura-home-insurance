@@ -45,8 +45,8 @@ function draw(el) {
       ${p.placeholder ? `<p class="t-meta">${t('s05.sample')}</p>` : ''}
       ${rec ? `<p class="t-body">${esc(reason(sg, a))}</p>` : ''}
       <p class="t-body">${price(o.price)}</p>${also}
-      <dl class="rows">${rows(p)}</dl>
-      <div class="row"><button class="btn btn-quiet" data-details="${p.id}">${t('s05.details')}</button><button class="btn btn-primary" data-choose="${p.id}">${t('s05.choose')}</button></div></div>`;
+      <div class="row"><button class="btn btn-primary" data-choose="${p.id}">${t('s05.choose')}</button><button class="btn btn-quiet" data-details="${p.id}">${t('s05.details')}</button></div>
+      <dl class="rows">${rows(p)}</dl></div>`;
   };
   el.innerHTML = `<h1 class="t-title">${t('s05.h1')}</h1><p class="t-meta">${t('s05.range')}</p>
     <div class="field"><label class="t-body" for="sort">${t('s05.sortBy')}</label><select id="sort">${['suggested', 'price', 'excess'].map((k) => `<option value="${k}"${k === sortKey ? ' selected' : ''}>${t('s05.sorts.' + k)}</option>`).join('')}</select></div>
@@ -82,7 +82,7 @@ screens.s06 = (el) => {
   const cancel = [plan.cancellation || t('s05.notStated'), `${t('s05.rows.cooling')}: ${plan.coolingOffDays ? t('s05.coolingText').replace('{n}', plan.coolingOffDays) : t('s05.notStated')}`];
   const fold = (title, body, open) => `<details class="fold"${open ? ' open' : ''}><summary class="t-h2">${title}</summary>${body}</details>`;
   el.innerHTML = `<h1 class="t-title">${plan.name}</h1>${plan.placeholder ? `<p class="t-meta">${t('s05.sample')}</p>` : ''}
-    ${o.fits ? `<p class="t-body">${price(o.price)}</p>` : ''}
+    ${o.fits ? `<p class="t-body">${price(o.price)}</p><div class="row"><button class="btn btn-primary" data-choose>${t('s05.choose')}</button></div>` : ''}
     ${fold(s('covered'), list(d.covered), true)}${fold(s('limits'), `<p class="t-meta">${tip(s('termLimit'), s('limitTip'))}</p>` + list(d.limits))}
     ${fold(s('excess'), `<p class="t-meta">${tip(s('termExcess'), s('excessTip'))}</p>` + list(excess))}
     ${fold(s('notCovered'), list(d.notCovered))}${fold(s('cancel'), list(cancel))}

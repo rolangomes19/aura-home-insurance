@@ -1,5 +1,7 @@
 import { COPY, ROUTES, AR_SCREENS, ANSWER_FIELDS } from './data.js';
 import { BELONGINGS_BANDS } from './domain.js';
+import { story } from './story.js';
+import './copy-story.js';
 
 const KEY = 'aura-home-v1';
 const $ = (s) => document.querySelector(s);
@@ -32,7 +34,11 @@ const placeholder = (id) => (el) => {
   el.innerHTML = `<h1 class="t-title">${id.toUpperCase()}</h1><p class="t-body">${t('placeholderScreen')}</p>`;
 };
 
-export const bandLabel = (i) => { const [a, b] = BELONGINGS_BANDS[i]; return b ? `AED ${a.toLocaleString('en-US')} to ${b.toLocaleString('en-US')}` : `AED ${a.toLocaleString('en-US')} and above`; };
+export const bandLabel = (i) => {
+  const [a, b] = BELONGINGS_BANDS[i], n = (x) => x.toLocaleString('en-US');
+  if (state.lang === 'ar') return b ? `${n(a)} إلى ${n(b)} درهم` : `${n(a)} درهم فأكثر`;
+  return b ? `AED ${n(a)} to ${n(b)}` : `AED ${n(a)} and above`;
+};
 const fmt = (key, v) => {
   if (key === 'belongingsBand') return bandLabel(v);
   if (typeof v === 'number') return aed(v);
@@ -42,14 +48,43 @@ const fmt = (key, v) => {
   return t('values.' + v) ?? v;
 };
 
+// The answers read as a first-person story; each highlighted token opens a pop-up with a Change link.
 function renderAnswers() {
-  const rows = Object.keys(ANSWER_FIELDS).filter((k) => state.answers[k] != null && state.answers[k] !== '');
+  closePop();
+  const sentences = story(state.answers, t('story'), fmt);
+  const html = sentences.map((s) => s.map((x) => (x.field
+    ? `<button type="button" class="tok" data-tok="${x.field}" aria-expanded="false">${esc(x.text)}</button>`
+    : esc(x.text))).join('')).join(' ');
   $('#answers').innerHTML = `<summary class="t-body">${t('answersTitle')}</summary>` +
-    (rows.length
-      ? `<dl class="t-body">${rows.map((k) => `<dt>${t('labels.' + k)}</dt><dd><span>${esc(fmt(k, state.answers[k]))}</span>` +
-        `<a href="#/${ANSWER_FIELDS[k]}" data-edit="${k}">${t('edit')}</a></dd>`).join('')}</dl>`
-      : `<p class="t-meta">${t('answersEmpty')}</p>`);
+    (html ? `<p class="story t-body">${html}</p>` : `<p class="t-meta">${t('answersEmpty')}</p>`);
 }
+
+// One shared pop-up, placed right after its token so Tab reaches the Change link.
+// Hover and focus open it; a click or tap pins it; Esc, outside click or scroll close it.
+const pop = Object.assign(document.createElement('span'), { id: 'pop', className: 'pop t-body', hidden: true, tabIndex: -1 });
+let popTok = null, pinned = false, hideTimer;
+function closePop() {
+  clearTimeout(hideTimer);
+  popTok?.setAttribute('aria-expanded', 'false');
+  popTok = null; pinned = false; pop.hidden = true;
+}
+function openPop(tok, pin) {
+  clearTimeout(hideTimer);
+  if (popTok !== tok) {
+    closePop();
+    popTok = tok;
+    tok.setAttribute('aria-expanded', 'true');
+    const f = tok.dataset.tok;
+    pop.innerHTML = `<span>${esc(t('story.pop.' + f))}</span><a href="#/${ANSWER_FIELDS[f]}">${esc(t('story.change'))}</a>`;
+    tok.after(pop);
+    pop.hidden = false;
+    const r = tok.getBoundingClientRect();
+    pop.style.top = `${r.bottom + 6}px`;
+    pop.style.left = `${Math.max(8, Math.min(r.left, innerWidth - pop.offsetWidth - 8))}px`;
+  }
+  pinned = pin;
+}
+const inPop = (el) => el?.closest?.('.tok, #pop');
 
 function renderChrome(id) {
   const step = ROUTES[id];
@@ -99,7 +134,17 @@ document.addEventListener('click', (e) => {
   }
   const back = e.target.closest('[data-back]');
   if (back) history.back();
+  const tok = e.target.closest('.tok');
+  if (tok) { if (popTok === tok && pinned) closePop(); else openPop(tok, true); }
+  else if (!inPop(e.target)) closePop();
 });
+document.addEventListener('mouseover', (e) => { const tok = e.target.closest('.tok'); if (tok) openPop(tok, pinned && popTok === tok); else if (e.target.closest('#pop')) clearTimeout(hideTimer); });
+document.addEventListener('mouseout', (e) => { if (inPop(e.target) && !inPop(e.relatedTarget) && !pinned) hideTimer = setTimeout(closePop, 200); });
+document.addEventListener('focusin', (e) => { const tok = e.target.closest?.('.tok'); if (tok) openPop(tok, pinned && popTok === tok); });
+document.addEventListener('focusout', (e) => { if (popTok && !inPop(e.relatedTarget)) closePop(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && popTok) { popTok.focus(); closePop(); } });
+window.addEventListener('scroll', closePop, { passive: true });
+window.addEventListener('resize', closePop);
 
 // Answers panel: always open at desktop width, collapsible below
 const desktop = matchMedia('(min-width:1280px)');
@@ -107,5 +152,6 @@ const syncPanel = () => { if (desktop.matches) $('#answers').open = true; };
 export function start() {
   desktop.addEventListener('change', syncPanel);
   window.addEventListener('hashchange', () => { route(); syncPanel(); });
+  $('#answers').open = true; // below the main content on small screens, so it can start open
   route(); syncPanel();
 }

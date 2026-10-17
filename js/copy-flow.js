@@ -39,6 +39,7 @@ Object.assign(COPY.en, {
   },
   s03: {
     h1: 'What do you want to cover?',
+    whatCovers: 'What do these covers mean?',
     tips: {
       building: 'Building: the structure of your home and its fixed parts. Example: a water leak damages your ceiling. Fact: in one broker\'s 2019 data, 90% of building damage claims came from water leaks. [Copy definition: check against policy wording]',
       contents: 'Contents: the things inside your home. Example: your TV is damaged by accident. Fact: in the same 2019 data, 57% of contents claims were accidental damage. [Check against wording]',

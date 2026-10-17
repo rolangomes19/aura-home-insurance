@@ -60,12 +60,13 @@ a{color:var(--accent)}
 .progress span.now{border-color:var(--accent);color:var(--ink);font-weight:600}
 .shell{max-width:1240px;margin:0 auto;padding:20px 16px 32px;display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
 #view{display:flex;flex-direction:column;gap:16px;outline:none}
-.side{order:-1}
 .panel{border:1.5px solid var(--line);border-radius:12px;background:var(--card);padding:12px 16px}
 .panel summary{min-height:44px;display:flex;align-items:center;font-weight:600;cursor:pointer}
-.panel dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:8px 12px}
-.panel dt{color:var(--muted)}
-.panel dd{margin:0;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.story{margin:0;line-height:2}
+.tok{border:none;border-bottom:2px solid var(--accent);background:var(--accent-soft);color:var(--accent);font:inherit;font-weight:600;padding:0 4px;border-radius:4px 4px 0 0;cursor:pointer;text-align:start}
+.pop{position:fixed;z-index:20;width:max-content;max-width:min(300px,calc(100vw - 16px));display:flex;flex-direction:column;gap:4px;padding:10px 12px;border:1.5px solid var(--ink);border-radius:8px;background:var(--card);box-shadow:0 6px 20px rgba(31,37,34,.18);font-weight:400;line-height:1.5;outline:none}
+.pop[hidden]{display:none}
+.pop a{font-weight:600;min-height:44px;display:inline-flex;align-items:center}
 .footer{max-width:1240px;margin:0 auto;padding:16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
 
 /* Term tip */
@@ -77,7 +78,7 @@ a{color:var(--accent)}
 }
 @media (min-width:1280px){
   .shell{grid-template-columns:minmax(0,1fr) 340px}
-  .side{order:0;position:sticky;top:16px}
+  .side{position:sticky;top:16px}
   #answers summary{pointer-events:none}
 }
 
@@ -109,3 +110,4 @@ dialog::backdrop{background:rgba(31,37,34,.45)}
 .fold{border:1.5px solid var(--line);border-radius:8px;padding:0 14px;background:var(--card)}
 .fold summary{min-height:44px;display:flex;align-items:center;cursor:pointer}
 .fold ul{margin:0 0 12px;padding-inline-start:20px}
+.fold .stack{padding-bottom:12px}

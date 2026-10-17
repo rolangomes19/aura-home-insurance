@@ -86,11 +86,12 @@ const ROLE_IDS = ['owner_living_in', 'owner_renting_out', 'tenant'];
 screens.s01 = (el) => {
   const s = (k) => t('s01.' + k), a = A();
   const cards = t('s01.cards');
-  el.innerHTML = page(s('h1'), `<p class="t-body">${s('sub')}</p>
-    <div class="box"><p class="t-label">${s('boxTitle')}</p><p class="t-body">${s('boxBody')}</p></div>
+  // The role choice sits first; the rules box, range and trust lines come after it (above the fold at 390px)
+  el.innerHTML = page(s('h1'), `<p class="t-body">${s('sub')} <a href="#/s14">${t('s14.resume')}</a></p>
     ${radios('role', s('question'), ROLE_IDS.map((r, i) => [r, cards[i][0], cards[i][1]]), a.role)}
     <div data-show="role=tenant">${yesno('tenancy12m', s('tenantQ'), a.tenancy12m)}</div>
-    <p class="t-meta">${s('range')}</p><p class="t-meta">${s('trust')}</p><p class="t-body"><a href="#/s14">${t('s14.resume')}</a></p>`, { back: false });
+    <div class="box"><p class="t-label">${s('boxTitle')}</p><p class="t-body">${s('boxBody')}</p></div>
+    <p class="t-meta">${s('range')}</p><p class="t-meta">${s('trust')}</p>`, { back: false });
   wire(el, 's01', 's02', {
     read: (f) => { const d = vals(f); return { role: d.role, tenancy12m: d.role === 'tenant' ? bool(d.tenancy12m) : null }; },
     validate: (d) => [
@@ -142,9 +143,9 @@ screens.s03 = (el) => {
     ${radios('covers', s('errCover'), opts, (a.covers || []).join('+'))}
     ${hidden ? `<p class="t-meta">${hidden}</p>` : ''}
     <p class="note t-body" id="dubai" hidden>${s('dubai')}</p>
-    <div class="stack">${ROLES[a.role].allowedCovers.map((c) => `<div class="box"><p class="t-body"><b>${t('values.' + c)}</b></p><p class="t-body">${esc(t('s03.tips.' + c))}</p></div>`).join('')}</div>
-    ${a.role === 'tenant' ? '' : `<p class="t-meta">${s('staff')}</p>`}
-    ${yesno('claims5y', s('claims'), a.claims5y, s('claimsWhy'))}`);
+    ${yesno('claims5y', s('claims'), a.claims5y, s('claimsWhy'))}
+    <details class="fold"><summary class="t-body">${s('whatCovers')}</summary><div class="stack">${ROLES[a.role].allowedCovers.map((c) => `<div><p class="t-body"><b>${t('values.' + c)}</b></p><p class="t-body">${esc(t('s03.tips.' + c))}</p></div>`).join('')}</div></details>
+    ${a.role === 'tenant' ? '' : `<p class="t-meta">${s('staff')}</p>`}`);
   wire(el, 's03', 's04', {
     read: (f) => { const d = vals(f); return { covers: d.covers ? d.covers.split('+') : undefined, claims5y: bool(d.claims5y) }; },
     validate: (d) => [
